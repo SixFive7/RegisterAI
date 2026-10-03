@@ -12,3 +12,6 @@
   scope. An entry is the caller's own when it names the caller's command or resolves
   under an `--owned-root`; every other entry is refused. Every write is read back
   before it counts. Advice codes say what a person has to do next.
+- Tests against the real Claude Code and Codex, copied into scratch and pointed at
+  scratch configuration, at both scopes. `docs/clients.md` lists what they hold and
+  the versions they were measured at.

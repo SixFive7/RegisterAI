@@ -69,25 +69,33 @@ internal sealed partial class HouseRuleTests
         await Assert.That(HasHeader("// SPDX-FileCopyrightText: 2026 Jori Huisman\n// " + LicenseLine + "\n")).IsTrue();
     }
 
-    /// <summary>No test in the tree carries a skip attribute.</summary>
+    /// <summary>
+    /// No test in the tree carries a skip attribute, and only the real-client harness
+    /// skips at run time, for a client this machine does not have.
+    /// </summary>
     /// <returns>The test.</returns>
     [Test]
     public async Task NoTestIsSkipped()
     {
         // Composed so that this file does not match its own scan.
-        var needle = "[" + "Skip";
+        var attribute = "[" + "Skip";
+        var call = "Skip" + ".";
+        const string Allowed = "tests/RegisterAI.Tests/Harness/RealClients.cs";
         var offenders = new List<string>();
 
         foreach (var file in (await RepositoryTree.FilesAsync()).Where(file => file.EndsWith(".cs", StringComparison.Ordinal)))
         {
-            if ((await RepositoryTree.ReadTextAsync(file) ?? string.Empty).Contains(needle, StringComparison.Ordinal))
+            var text = await RepositoryTree.ReadTextAsync(file) ?? string.Empty;
+
+            if (text.Contains(attribute, StringComparison.Ordinal) || (file != Allowed && text.Contains(call, StringComparison.Ordinal)))
             {
                 offenders.Add(file);
             }
         }
 
         await Assert.That(string.Join(Environment.NewLine, offenders)).IsEmpty();
-        await Assert.That(("    " + needle + "(\"later\")]").Contains(needle, StringComparison.Ordinal)).IsTrue();
+        await Assert.That(("    " + attribute + "(\"later\")]").Contains(attribute, StringComparison.Ordinal)).IsTrue();
+        await Assert.That((await RepositoryTree.ReadTextAsync(Allowed))!).Contains(call + "Test(");
     }
 
     /// <summary>No text file carries a character a person does not type.</summary>

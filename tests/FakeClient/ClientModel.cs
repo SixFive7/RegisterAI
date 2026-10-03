@@ -151,7 +151,11 @@ internal static class ClientModel
         {
             if (servers is null || !servers.Remove(name))
             {
-                return new ModelOutcome(1, string.Empty, $"No MCP server named \"{name}\" in {scope} scope\n");
+                // Claude Code 2.1.288 words the two scopes differently.
+                return new ModelOutcome(
+                    1,
+                    string.Empty,
+                    scope is "project" ? $"No MCP server named \"{name}\" in .mcp.json\n" : $"No MCP server named \"{name}\" in {scope} scope\n");
             }
 
             File.WriteAllText(file, root.ToJsonString(Indented) + "\n");
@@ -188,7 +192,7 @@ internal static class ClientModel
 
         return new ModelOutcome(
             0,
-            $"Added stdio MCP server {name} with command: {string.Join(' ', positional.Skip(1))} to {scope} config\nFile modified: {file}\n",
+            $"Added stdio MCP server {name} with command: {positional[1]} {string.Join(' ', positional.Skip(2))} to {scope} config\nFile modified: {file}\n",
             string.Empty);
     }
 
