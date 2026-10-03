@@ -20,6 +20,18 @@ user) and project scope (one folder).
 - A configuration it cannot read is reported as `unreadable`, never as empty.
 - It never prompts, never reads stdin, never edits PATH, and makes no network call.
 
+## Install
+
+Download `RegisterAI.exe` and `SHA256SUMS` from a release, and check the file before
+running it:
+
+```powershell
+(Get-FileHash RegisterAI.exe -Algorithm SHA256).Hash.ToLowerInvariant() -eq (Get-Content SHA256SUMS).Split(' ')[0]
+```
+
+There is nothing else to install. Put the file wherever the program that calls it
+expects it.
+
 ## Quick start
 
 ```powershell
