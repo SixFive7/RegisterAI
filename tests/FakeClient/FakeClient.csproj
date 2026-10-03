@@ -1,0 +1,16 @@
+<!-- SPDX-FileCopyrightText: 2026 Jori Huisman -->
+<!-- SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Plays claude.exe or codex.exe, chosen by its own file name, so the
+       contract tests can run the published RegisterAI.exe against a client
+       whose answers they control. The same model runs in process for the
+       decision tests. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RegisterAI.FakeClient</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

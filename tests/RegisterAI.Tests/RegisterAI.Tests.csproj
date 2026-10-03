@@ -14,4 +14,14 @@
     <PackageReference Include="TUnit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The decision tests call the product in process. The contract tests run
+         the published executable instead; see Harness/Published.cs. -->
+    <ProjectReference Include="..\..\src\RegisterAI\RegisterAI.csproj" />
+    <!-- Built first so its output exists; the tests copy it as claude.exe and
+         codex.exe. Its model is also compiled in here, for the decision tests. -->
+    <ProjectReference Include="..\FakeClient\FakeClient.csproj" ReferenceOutputAssembly="false" />
+    <Compile Include="..\FakeClient\ClientModel.cs" Link="Harness\ClientModel.cs" />
+  </ItemGroup>
+
 </Project>

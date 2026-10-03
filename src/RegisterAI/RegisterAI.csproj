@@ -47,6 +47,13 @@
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" />
     <AdditionalFiles Include="BannedSymbols.txt" />
+    <!-- 'registerai license' prints this, so no licence file has to sit beside
+         the executable. -->
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LICENSE" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="RegisterAI.Tests" />
   </ItemGroup>
 
 </Project>

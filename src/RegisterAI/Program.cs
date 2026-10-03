@@ -5,11 +5,4 @@ using RegisterAI;
 
 using var terminal = new Terminal();
 
-if (args is ["--version"])
-{
-    terminal.WriteText(ToolVersion.Text + "\n");
-    return 0;
-}
-
-terminal.WriteDiagnostic("registerai: this build implements --version only.\n");
-return 2;
+return await Cli.RunAsync(args, terminal).ConfigureAwait(false);

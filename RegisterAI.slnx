@@ -5,6 +5,7 @@
     <Project Path="src/RegisterAI/RegisterAI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/FakeClient/FakeClient.csproj" />
     <Project Path="tests/RegisterAI.Tests/RegisterAI.Tests.csproj" />
   </Folder>
 </Solution>

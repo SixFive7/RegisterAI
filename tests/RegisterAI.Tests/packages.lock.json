@@ -105,6 +105,9 @@
           "Microsoft.Testing.Platform.MSBuild": "2.4.1",
           "TUnit.Core": "1.72.16"
         }
+      },
+      "registerai": {
+        "type": "Project"
       }
     }
   }
