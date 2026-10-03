@@ -615,7 +615,8 @@ internal sealed class EngineTests
     /// <summary>
     /// A bare command is looked up on the PATH a new program gets: found, it is reported
     /// with where, and Codex is advised to restart; found nowhere, the path-missing advice
-    /// says so and offers the editor Windows has for it.
+    /// says so and names 'registerai path add' and 'registerai path remove', with no
+    /// command to run because no folder was named.
     /// </summary>
     /// <returns>The test.</returns>
     [Test]
@@ -649,7 +650,61 @@ internal sealed class EngineTests
 
         await Assert.That(gone.Results[0].Before.State).IsEqualTo(State.OursStale);
         await Assert.That(advice.Code).IsEqualTo("path-missing");
-        await Assert.That(advice.Command).IsEqualTo("rundll32.exe sysdm.cpl,EditEnvironmentVariables");
+        await Assert.That(advice.Command).IsNull();
+        await Assert.That(advice.Text).Contains("registerai path add <folder>");
+        await Assert.That(advice.Text).Contains("registerai path remove <folder>");
+        await Assert.That(advice.Text).DoesNotContain("rundll32");
+    }
+
+    /// <summary>
+    /// With --path-folder, the path-missing advice is about that folder: when it is not on
+    /// the PATH a new program gets, the advice's command is 'registerai path add' for
+    /// exactly that folder, whether or not the bare name is found somewhere else; when it
+    /// is on it, there is no path-missing advice.
+    /// </summary>
+    /// <returns>The test.</returns>
+    [Test]
+    public async Task ThePathMissingAdviceNamesTheAddCommandForTheFolderItWasGiven()
+    {
+        using var bench = Bench.Create("path-folder");
+        var needed = Directory.CreateDirectory(bench.Scratch.In("current")).FullName;
+        var elsewhere = Directory.CreateDirectory(bench.Scratch.In("elsewhere")).FullName;
+
+        await File.WriteAllTextAsync(Path.Combine(needed, "demo-mcp.exe"), "server");
+        await File.WriteAllTextAsync(Path.Combine(elsewhere, "demo-mcp.exe"), "another product's server");
+
+        string[] register = ["register", "--name", "demo", "--client", "codex", "--scope", "project", "--project", bench.Project, "--path-folder", needed, "--", "demo-mcp.exe"];
+        string[] status = ["status", "--name", "demo", "--client", "codex", "--scope", "project", "--project", bench.Project, "--path-folder", needed, "--", "demo-mcp.exe"];
+
+        // The register that writes the entry says it already.
+        var registered = (await bench.RunAsync(register)).Results[0];
+
+        await Assert.That(registered.Action).IsEqualTo(Change.Added);
+        await Assert.That(registered.Advice.Single(item => item.Code is "path-missing").Command).IsEqualTo("registerai path add '" + needed + "'");
+
+        // Not on the PATH at all.
+        var missing = (await bench.RunAsync(status)).Results[0].Advice.Single(item => item.Code is "path-missing");
+
+        await Assert.That(missing.Command).IsEqualTo("registerai path add '" + needed + "'");
+        await Assert.That(missing.Text).Contains(needed);
+        await Assert.That(missing.Text).Contains("registerai path remove");
+
+        // The name is found, but in another folder: the folder asked about is still missing.
+        bench.NewProgramPath.Add(elsewhere);
+
+        var shadowed = (await bench.RunAsync(status)).Results[0].Advice;
+
+        await Assert.That(shadowed.Single(item => item.Code is "path-missing").Command).IsEqualTo("registerai path add '" + needed + "'");
+
+        // On the PATH, spelled with a trailing separator: no path-missing advice.
+        bench.NewProgramPath.Add(needed + @"\");
+
+        var present = (await bench.RunAsync(status)).Results[0].Advice;
+
+        await Assert.That(present.Select(item => item.Code)).DoesNotContain("path-missing");
+
+        // A relative folder is a usage error, never a guess.
+        await Assert.That(CommandLine.Parse(["status", "--name", "demo", "--path-folder", "current"]).Outcome).IsEqualTo(Outcome.Usage);
     }
 
     /// <summary>A dry run decides and predicts, and runs no write.</summary>

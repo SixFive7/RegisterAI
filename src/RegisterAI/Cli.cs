@@ -25,7 +25,12 @@ internal static class Cli
                 return 0;
 
             case Outcome.Help:
-                terminal.WriteText(parsed.Verb is { } verb ? HelpText.For(verb) : HelpText.Full());
+                terminal.WriteText(parsed switch
+                {
+                    { Topics: { } topics } => string.Join('\n', topics.Select(HelpText.For)),
+                    { Verb: { } verb } => HelpText.For(verb),
+                    _ => HelpText.Full(),
+                });
                 return parsed.ExitCode;
 
             case Outcome.Usage:
@@ -48,6 +53,9 @@ internal static class Cli
                 terminal.WriteText(LicenseText.Read());
                 return 0;
 
+            case Verb.PathAdd or Verb.PathRemove:
+                return RunPath(request, terminal, machine);
+
             default:
                 break;
         }
@@ -69,5 +77,26 @@ internal static class Cli
 
         Report.Write(terminal, request, result);
         return result.ExitCode;
+    }
+
+    private static int RunPath(Request request, Terminal terminal, Machine machine)
+    {
+        PathReport report;
+
+        try
+        {
+            report = PathVerbs.Run(request, machine);
+        }
+#pragma warning disable CA1031 // The same boundary as the engine's: a defect is a document and exit code 1, never a crash with nothing on stdout.
+        catch (Exception failure)
+#pragma warning restore CA1031
+        {
+            terminal.WriteDiagnostic(failure + "\n");
+            Report.WriteStopped(terminal, request, 1, $"RegisterAI stopped on an unexpected error: {failure.GetType().Name}: {failure.Message}");
+            return 1;
+        }
+
+        Report.WritePath(terminal, request, report);
+        return report.ExitCode;
     }
 }

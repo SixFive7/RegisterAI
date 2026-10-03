@@ -49,4 +49,28 @@ for; an unregister only when the entry reads back absent. Otherwise the action i
 | `codex-new-thread` | After any change to a Codex entry. |
 | `codex-trust-project` | After writing a Codex project entry. |
 | `codex-restart-for-path` | A Codex entry names a bare command that the new-program PATH finds. |
-| `path-missing` | An entry names a bare command that the new-program PATH does not find. Its `command` opens the Windows editor for environment variables; RegisterAI never edits PATH. |
+| `path-missing` | An entry names a bare command, and the folder `--path-folder` names is not on the new-program PATH; its `command` is `registerai path add` for that folder. Without `--path-folder`, the bare command is found in no folder there, and `command` is null because no folder is known. |
+
+## The user PATH
+
+`path add` and `path remove` are the only verbs that write the PATH, and they write only
+`HKEY_CURRENT_USER\Environment\Path`. No other verb changes it: `register` with a bare
+command reports a missing folder and leaves the PATH to whoever runs the line it offers.
+
+- `path add` takes a full path to a folder that exists, so it cannot add an entry that
+  names nothing. It appends after a separator even when the value already ends in one,
+  which is what makes the remove after it give back the value byte for byte.
+- `path remove` takes off every entry naming exactly the folder given, compared without
+  case, surrounding spaces or a trailing separator. A different spelling of the same
+  folder, such as one with a variable, is a different entry and is left.
+- The value's kind is kept. A value that held only the removed folder is deleted, the way
+  an add from nothing created it; a value that becomes empty text stays as empty text.
+- A write counts only when the value reads back exactly as written, and only then is it
+  announced with `WM_SETTINGCHANGE`. Otherwise the action is `failed` and the exit code
+  is 1.
+
+`status` reports, in `path.dead`, every entry of the user PATH that is a full path once
+`%NAME%` is expanded (in a `REG_EXPAND_SZ` value only) and names a folder that does not
+exist, each with the `registerai path remove` line for it. It never removes one. A network
+path is not judged, because asking a share whether a folder exists can take as long as the
+network does.

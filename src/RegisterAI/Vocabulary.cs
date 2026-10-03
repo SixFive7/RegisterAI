@@ -86,7 +86,7 @@ internal static class Vocabulary
         (Change.RefusedForeign, "refused-foreign", "The entry belongs to someone else. Nothing was run."),
         (Change.RefusedUnreadable, "refused-unreadable", "The configuration could not be read. Nothing was run."),
         (Change.ClientNotFound, "client-not-found", "The client's executable was not found. Nothing was run."),
-        (Change.Failed, "failed", "A client command failed or timed out, or the result could not be confirmed."),
+        (Change.Failed, "failed", "A client command failed or timed out, or a change could not be made or confirmed."),
     ];
 
     /// <summary>Each advice code and the condition it reports.</summary>
@@ -97,14 +97,14 @@ internal static class Vocabulary
         ("codex-new-thread", "Codex does not pick up a change in a thread that is already open."),
         ("codex-trust-project", "Codex reads a project's own configuration only in a project that has been trusted."),
         ("codex-restart-for-path", "Codex finds a bare command on the PATH it started with; one started before a PATH change needs a restart."),
-        ("path-missing", "A bare command was found in no folder on the PATH a newly started program gets."),
+        ("path-missing", "The folder --path-folder names is not on the PATH a newly started program gets, or without it a bare command is found in no folder there."),
     ];
 
     /// <summary>Each exit code, its short name and its meaning.</summary>
     public static IReadOnlyList<(int Code, string Name, string Meaning)> ExitCodes { get; } =
     [
         (0, "done", "Done, or nothing needed doing."),
-        (1, "failed", "A client command failed or timed out, or the result could not be confirmed."),
+        (1, "failed", "A client command failed or timed out, or a change could not be made or confirmed."),
         (2, "usage", "The command line was not understood. Nothing was run."),
         (3, "foreign", "Refused: the entry belongs to someone else."),
         (4, "unreadable", "Refused: a client's configuration could not be read."),

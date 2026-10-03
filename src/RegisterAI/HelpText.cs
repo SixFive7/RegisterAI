@@ -19,7 +19,8 @@ internal static class HelpText
 
         _ = text.Append("RegisterAI ").Append(ToolVersion.Text).Append('\n')
             .Append("Registers a local MCP server with coding agents by running each agent's own command.\n")
-            .Append("It never edits an agent's configuration file, never prompts, and never reads stdin.\n");
+            .Append("It never edits an agent's configuration file, never prompts, and never reads stdin.\n")
+            .Append("It changes the user PATH only when asked to, with path add and path remove.\n");
 
         Section(text, "USAGE");
         foreach (var verb in CommandLine.Verbs)
@@ -56,8 +57,12 @@ internal static class HelpText
             Row(text, "  " + code.PadRight(24), meaning);
         }
 
+        Section(text, "USER PATH");
+        Paragraph(text, "path add and path remove change " + UserPathWhere + " and nothing else. path add puts a folder that exists after the entries already there, and writes nothing when the folder is there already. path remove takes off every entry naming exactly that folder, case and a trailing separator aside. Each write is read back before it counts, and then announced to running programs, which pick it up only if they listen for the announcement.");
+        Paragraph(text, "status lists the entries of the user PATH that name a folder that does not exist, each with the path remove line that takes it off. It removes none of them itself.");
+
         Section(text, "OUTPUT");
-        Paragraph(text, "status, register, unregister, describe and every usage error write exactly one JSON document to stdout and nothing else. help, license and --version write text. Diagnostics go to stderr. Every JSON document carries \"schema\": " + Vocabulary.Schema + "; 'registerai describe' prints the schema.");
+        Paragraph(text, "status, register, unregister, path add, path remove, describe and every usage error write exactly one JSON document to stdout and nothing else. help, license and --version write text. Diagnostics go to stderr. Every JSON document carries \"schema\": " + Vocabulary.Schema + "; 'registerai describe' prints the schema.");
 
         Section(text, "EXIT CODES");
         foreach (var (code, _, meaning) in Vocabulary.ExitCodes)
@@ -65,7 +70,7 @@ internal static class HelpText
             Row(text, "  " + code + "  ", meaning);
         }
 
-        Paragraph(text, "With several clients, the code is the first that applies of " + string.Join(", ", Vocabulary.ExitCodeOrder) + ". A dry run returns 0, 3, 4 or 5 and never 1.");
+        Paragraph(text, "With several clients, the code is the first that applies of " + string.Join(", ", Vocabulary.ExitCodeOrder) + ". A dry run of register or unregister returns 0, 3, 4 or 5 and never 1. path add and path remove return 0, 2, or 1 when the PATH could not be read, written or confirmed.");
 
         Section(text, "QUOTING");
         Paragraph(text, "Everything after -- reaches the client unchanged. Your shell must not change it first.");
@@ -74,13 +79,16 @@ internal static class HelpText
         Paragraph(text, "Run with --dry-run to see exactly what arrived.");
 
         Section(text, "EXAMPLES");
-        foreach (var example in CommandLine.Verbs.Where(verb => verb.Verb is Verb.Status or Verb.Register or Verb.Unregister).SelectMany(verb => verb.Examples))
+        foreach (var example in CommandLine.Verbs.Where(verb => verb.Verb is Verb.Status or Verb.Register or Verb.Unregister or Verb.PathAdd or Verb.PathRemove).SelectMany(verb => verb.Examples))
         {
             _ = text.Append("  ").Append(Example(example)).Append('\n');
         }
 
         return text.ToString();
     }
+
+    /// <summary>Where the real user PATH is, as every document names it.</summary>
+    private static string UserPathWhere => RegistryUserPathStore.User.Where;
 
     /// <summary>One verb's part of the help text.</summary>
     /// <param name="verb">The verb.</param>

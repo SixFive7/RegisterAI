@@ -72,7 +72,11 @@ internal sealed record ClientResult
 /// <summary>A whole run's results and exit code.</summary>
 /// <param name="Results">One per client, in the fixed order.</param>
 /// <param name="ExitCode">The exit code.</param>
-internal sealed record EngineResult(IReadOnlyList<ClientResult> Results, int ExitCode);
+internal sealed record EngineResult(IReadOnlyList<ClientResult> Results, int ExitCode)
+{
+    /// <summary>What status found on the user PATH; null for every other verb.</summary>
+    public PathReport? Path { get; init; }
+}
 
 /// <summary>
 /// Reads each client's entry, decides, runs the client's own command, reads the entry
@@ -105,7 +109,12 @@ internal static class Engine
             results.Add(await run.ExecuteAsync().ConfigureAwait(false));
         }
 
-        return new EngineResult(results, ExitCode(request, results));
+        // status reads the user PATH too, for entries naming a folder that is gone. It
+        // never removes one: that is 'path remove', when somebody asks for it.
+        return new EngineResult(results, ExitCode(request, results))
+        {
+            Path = request.Verb is Verb.Status ? UserPath.Inspect(machine.UserPath, machine.Variable) : null,
+        };
     }
 
     /// <summary>
@@ -497,9 +506,10 @@ internal static class Engine
         }
 
         /// <summary>
-        /// For a bare command: where the PATH a new program gets finds it, or that it finds
-        /// it nowhere. RegisterAI never edits PATH; the command offered opens the editor
-        /// Windows provides for it.
+        /// For a bare command: whether the folder it needs is on the PATH a new program
+        /// gets, and where that PATH finds it. Nothing here changes the PATH: the advice
+        /// names 'registerai path add' for the folder --path-folder gave, and a person or a
+        /// program runs it.
         /// </summary>
         private List<AdviceItem> PathAdvice(EntryView entry)
         {
@@ -508,18 +518,35 @@ internal static class Engine
                 return [];
             }
 
-            if (entry.ResolvesTo is null)
+            var name = client.Info().Name;
+
+            // The folder the caller named: it has to be on the PATH, whatever else the
+            // bare name finds first.
+            if (request.PathFolder is { } needed)
+            {
+                if (!machine.NewProgramPath().Any(folder => UserPath.Names(folder, needed)))
+                {
+                    return
+                    [
+                        new(
+                            "path-missing",
+                            $"'{needed}' is not on the PATH a newly started program gets, so {name} does not find '{command}' there. The command puts it on the user PATH; 'registerai path remove' with the same folder takes it off again.",
+                            UserPath.AddCommand(needed)),
+                    ];
+                }
+            }
+            else if (entry.ResolvesTo is null)
             {
                 return
                 [
                     new(
                         "path-missing",
-                        $"No folder on the PATH a newly started program gets holds '{command}', so {client.Info().Name} cannot start this entry. RegisterAI does not edit PATH. Put the folder that holds it on your user PATH; the command opens the Windows editor for environment variables.",
-                        "rundll32.exe sysdm.cpl,EditEnvironmentVariables"),
+                        $"No folder on the PATH a newly started program gets holds '{command}', so {name} cannot start this entry. Put the folder that holds it on the user PATH with 'registerai path add <folder>'; 'registerai path remove <folder>' takes it off again. Name that folder with --path-folder and this advice carries the exact command.",
+                        null),
                 ];
             }
 
-            return client is ClientId.Codex
+            return client is ClientId.Codex && entry.ResolvesTo is not null
                 ? [new("codex-restart-for-path", $"'{command}' is found on PATH at '{entry.ResolvesTo}'. A Codex started before that folder was on PATH does not find it until Codex is restarted.", null)]
                 : [];
         }

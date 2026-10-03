@@ -87,6 +87,8 @@ internal sealed class DecisionTableTests
             .IsEqualTo("0=done 1=failed 2=usage 3=foreign 4=unreadable 5=client-not-found");
         await Assert.That(string.Join(' ', Vocabulary.ExitCodeOrder)).IsEqualTo("1 4 3 5 0");
         await Assert.That(Describe.Schema()).Contains("\"schema\": { \"const\": 1 }");
+        await Assert.That(string.Join(", ", CommandLine.Verbs.Select(verb => verb.Name)))
+            .IsEqualTo("status, register, unregister, path add, path remove, describe, license, help");
 
         // Every enum member has its word, and no word is used twice.
         await Assert.That(Vocabulary.States.Select(state => state.State).Distinct().Count()).IsEqualTo(Enum.GetValues<State>().Length);

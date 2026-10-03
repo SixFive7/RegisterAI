@@ -13,17 +13,17 @@ namespace RegisterAI;
 internal static class Describe
 {
     /// <summary>
-    /// The JSON Schema of the documents status, register and unregister write, and of a
-    /// usage error. The quoted placeholders are replaced with the published words, so
-    /// the schema cannot list a word the tool does not use.
+    /// The JSON Schema of the documents status, register, unregister and the path verbs
+    /// write, and of a usage error. The quoted placeholders are replaced with the
+    /// published words, so the schema cannot list a word the tool does not use.
     /// </summary>
     private const string OutputSchema =
         """
         {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "title": "RegisterAI status, register and unregister documents, and usage errors",
+          "title": "RegisterAI status, register, unregister, path add and path remove documents, and usage errors",
           "type": "object",
-          "required": ["tool", "version", "schema", "verb", "dryRun", "exitCode", "error", "server", "results"],
+          "required": ["tool", "version", "schema", "verb", "dryRun", "exitCode", "error", "server", "results", "path"],
           "properties": {
             "tool": { "const": "registerai" },
             "version": { "type": "string" },
@@ -49,11 +49,35 @@ internal static class Describe
             },
             "results": {
               "type": "array",
-              "description": "One per client, claude-code first. status writes statusResult, register and unregister write changeResult.",
+              "description": "One per client, claude-code first. status writes statusResult, register and unregister write changeResult. Empty for the path verbs.",
               "items": { "oneOf": [{ "$ref": "#/$defs/statusResult" }, { "$ref": "#/$defs/changeResult" }] }
+            },
+            "path": {
+              "description": "The user PATH: written by status, path add and path remove, null in every other document.",
+              "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/userPath" }]
             }
           },
           "$defs": {
+            "userPath": {
+              "type": "object",
+              "required": ["where", "folder", "action", "announced", "dead", "error"],
+              "properties": {
+                "where": { "type": "string", "description": "The registry value: HKEY_CURRENT_USER\\Environment\\Path." },
+                "folder": { "type": ["string", "null"], "description": "The folder path add or path remove was about; null for status." },
+                "action": { "enum": "@PATHACTIONS@", "description": "What path add or path remove did, or decided in a dry run; null for status." },
+                "announced": { "type": ["boolean", "null"], "description": "Whether the change was announced to running programs; null when nothing was written." },
+                "dead": { "type": "array", "items": { "$ref": "#/$defs/deadEntry" }, "description": "Entries naming a folder that does not exist. Nothing removes them but path remove." },
+                "error": { "type": ["string", "null"], "description": "Why the PATH could not be read, written or confirmed, or null." }
+              }
+            },
+            "deadEntry": {
+              "type": "object",
+              "required": ["entry", "command"],
+              "properties": {
+                "entry": { "type": "string", "description": "The entry as the PATH spells it." },
+                "command": { "type": "string", "description": "The path remove line that takes it off." }
+              }
+            },
             "entry": {
               "type": "object",
               "required": ["state", "command", "args", "env", "resolvesTo"],
@@ -127,6 +151,9 @@ internal static class Describe
         }
         """;
 
+    /// <summary>The actions a path verb reports.</summary>
+    public static IReadOnlyList<Change> PathActions { get; } = [Change.None, Change.Added, Change.Removed, Change.Failed];
+
     /// <summary>The schema with the published words in place.</summary>
     /// <returns>The JSON text.</returns>
     public static string Schema() =>
@@ -134,6 +161,7 @@ internal static class Describe
             .Replace("\"@EXITCODES@\"", "[" + string.Join(", ", Vocabulary.ExitCodes.Select(code => code.Code)) + "]", StringComparison.Ordinal)
             .Replace("\"@STATES@\"", Array(Vocabulary.States.Select(state => state.Word)), StringComparison.Ordinal)
             .Replace("\"@ACTIONS@\"", Array(Vocabulary.Actions.Select(action => action.Word)), StringComparison.Ordinal)
+            .Replace("\"@PATHACTIONS@\"", Array(PathActions.Select(change => change.Word())).Replace("]", ", null]", StringComparison.Ordinal), StringComparison.Ordinal)
             .Replace("\"@ADVICE@\"", Array(Vocabulary.Advice.Select(advice => advice.Code)), StringComparison.Ordinal)
             .Replace("\"@CLIENTS@\"", Array(Clients.All.Select(client => client.Word)), StringComparison.Ordinal);
 
@@ -144,7 +172,7 @@ internal static class Describe
         {
             writer.WriteStartObject();
             writer.WriteHeader("describe");
-            writer.WriteString("summary", "Registers a local MCP server with coding agents by running each agent's own command. It never edits an agent's configuration file, never prompts, and never reads stdin.");
+            writer.WriteString("summary", "Registers a local MCP server with coding agents by running each agent's own command. It never edits an agent's configuration file, never prompts, and never reads stdin. It changes the user PATH only when asked to, with path add and path remove.");
 
             writer.WriteStartArray("verbs");
             foreach (var verb in CommandLine.Verbs)
@@ -247,6 +275,8 @@ internal static class Describe
             Tail.Optional => "optional",
             _ => "none",
         });
+
+        writer.WriteNullableString("argument", verb.Argument);
 
         writer.WriteStartArray("examples");
         foreach (var example in verb.Examples)

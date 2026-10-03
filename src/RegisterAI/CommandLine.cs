@@ -18,6 +18,12 @@ internal enum Verb
     /// <summary>Remove the caller's own entry.</summary>
     Unregister,
 
+    /// <summary>Put a folder on the user PATH.</summary>
+    PathAdd,
+
+    /// <summary>Take a folder off the user PATH.</summary>
+    PathRemove,
+
     /// <summary>The contract as JSON.</summary>
     Describe,
 
@@ -51,14 +57,15 @@ internal sealed record OptionSpec(string Name, string? Value, string Summary, bo
 
 /// <summary>One verb in the table.</summary>
 /// <param name="Verb">The verb.</param>
-/// <param name="Name">Its word.</param>
-/// <param name="Writes">Whether it can change a client's configuration.</param>
+/// <param name="Name">Its words: one, or two for the path verbs.</param>
+/// <param name="Writes">Whether it can change a client's configuration or the user PATH.</param>
 /// <param name="Summary">What it does, in one line.</param>
-/// <param name="Usage">Its usage line, after the tool's name.</param>
+/// <param name="Usage">Its usage line, after the tool's name and the verb.</param>
 /// <param name="Required">The options it requires.</param>
 /// <param name="Optional">The options it accepts besides those.</param>
 /// <param name="Tail">Whether a command line follows <c>--</c>.</param>
 /// <param name="Examples">Example argument vectors, after the tool's name.</param>
+/// <param name="Argument">The placeholder of the one argument it takes after its words, or null.</param>
 internal sealed record VerbSpec(
     Verb Verb,
     string Name,
@@ -68,7 +75,8 @@ internal sealed record VerbSpec(
     IReadOnlyList<string> Required,
     IReadOnlyList<string> Optional,
     Tail Tail,
-    IReadOnlyList<IReadOnlyList<string>> Examples);
+    IReadOnlyList<IReadOnlyList<string>> Examples,
+    string? Argument = null);
 
 /// <summary>A command line that was understood.</summary>
 internal sealed record Request
@@ -117,6 +125,12 @@ internal sealed record Request
 
     /// <summary>The server's arguments.</summary>
     public IReadOnlyList<string> Arguments { get; init; } = [];
+
+    /// <summary>The folder <c>path add</c> or <c>path remove</c> is about.</summary>
+    public string? Folder { get; init; }
+
+    /// <summary>The folder a bare command is found in, named with <c>--path-folder</c>.</summary>
+    public string? PathFolder { get; init; }
 }
 
 /// <summary>What a command line asks for.</summary>
@@ -141,7 +155,8 @@ internal enum Outcome
 /// <param name="Verb">The verb the text or error is about, when one was recognised.</param>
 /// <param name="Error">The usage error.</param>
 /// <param name="ExitCode">The exit code for help text: 0 when asked for, 2 when no arguments were given.</param>
-internal sealed record Parsed(Outcome Outcome, Request? Request = null, VerbSpec? Verb = null, string? Error = null, int ExitCode = 0);
+/// <param name="Topics">For help about the path verbs together, both of them.</param>
+internal sealed record Parsed(Outcome Outcome, Request? Request = null, VerbSpec? Verb = null, string? Error = null, int ExitCode = 0, IReadOnlyList<VerbSpec>? Topics = null);
 
 /// <summary>
 /// The command-line table and its parser. One table feeds parsing, the help text and
@@ -169,6 +184,7 @@ internal static partial class CommandLine
         new("--dry-run", null, "Decide and report; run nothing that writes."),
         new("--timeout", "seconds", "Budget for the whole run. Default 30."),
         new("--client-exe", "id=path", "Use this executable for a client, in place of the search. Repeatable.", Repeatable: true),
+        new("--path-folder", "dir", "The folder a bare <command> is found in. When it is not on the PATH a new program gets, the path-missing advice names 'registerai path add <dir>'."),
     ];
 
     /// <summary>Every verb, in the order help lists them.</summary>
@@ -181,7 +197,7 @@ internal static partial class CommandLine
             "Report, per client, whether <server> is registered and whose entry it is. Reads only.",
             "--name <server> [options] [-- <command> [args...]]",
             ["--name"],
-            ["--client", "--scope", "--project", "--owned-root", "--timeout", "--client-exe"],
+            ["--client", "--scope", "--project", "--owned-root", "--timeout", "--client-exe", "--path-folder"],
             Tail.Optional,
             [["status", "--name", "demo"], ["status", "--name", "demo", "--owned-root", @"C:\Apps\Demo", "--", @"C:\Apps\Demo\demo-mcp.exe"]]),
         new(
@@ -191,7 +207,7 @@ internal static partial class CommandLine
             "Make the entry exist and name <command>. Safe to repeat.",
             "--name <server> --client <id> --scope <scope> [options] -- <command> [args...]",
             ["--name", "--client", "--scope"],
-            ["--project", "--owned-root", "--env", "--replace", "--take-over", "--dry-run", "--timeout", "--client-exe"],
+            ["--project", "--owned-root", "--env", "--replace", "--take-over", "--dry-run", "--timeout", "--client-exe", "--path-folder"],
             Tail.Required,
             [
                 ["register", "--name", "demo", "--client", "all", "--scope", "user", "--owned-root", @"C:\Apps\Demo", "--", @"C:\Apps\Demo\demo-mcp.exe"],
@@ -207,6 +223,28 @@ internal static partial class CommandLine
             ["--project", "--owned-root", "--dry-run", "--timeout", "--client-exe"],
             Tail.Optional,
             [["unregister", "--name", "demo", "--client", "all", "--scope", "user", "--owned-root", @"C:\Apps\Demo"]]),
+        new(
+            Verb.PathAdd,
+            "path add",
+            Writes: true,
+            "Put <folder>, a full path to a folder that exists, on the user PATH after the entries already there. Safe to repeat.",
+            "<folder> [--dry-run]",
+            [],
+            ["--dry-run"],
+            Tail.None,
+            [["path", "add", @"C:\Apps\Demo"]],
+            Argument: "folder"),
+        new(
+            Verb.PathRemove,
+            "path remove",
+            Writes: true,
+            "Take every entry naming exactly <folder> off the user PATH, case aside. Safe to repeat.",
+            "<folder> [--dry-run]",
+            [],
+            ["--dry-run"],
+            Tail.None,
+            [["path", "remove", @"C:\Apps\Demo"]],
+            Argument: "folder"),
         new(Verb.Describe, "describe", Writes: false, "Print the verbs, options, clients, exit codes and output schema as JSON.", string.Empty, [], [], Tail.None, [["describe"]]),
         new(Verb.License, "license", Writes: false, "Print the licence terms.", string.Empty, [], [], Tail.None, [["license"]]),
         new(Verb.Help, "help", Writes: false, "Print this text, or one verb's part of it.", "[verb]", [], [], Tail.None, [["help", "register"]]),
@@ -241,23 +279,140 @@ internal static partial class CommandLine
             return args.Count is 1 ? new Parsed(Outcome.Help) : Usage(null, $"{first} takes nothing after it. For one verb's help, run 'registerai help <verb>'.");
         }
 
-        if (Verbs.FirstOrDefault(verb => verb.Name == first) is not { } spec)
+        if (first is "path")
+        {
+            return ParsePath(args);
+        }
+
+        // A path verb is two words and is read above; one argument that happens to
+        // hold both words is not it.
+        if (Verbs.FirstOrDefault(verb => verb.Name == first && verb.Argument is null) is not { } spec)
         {
             return Usage(null, $"'{first}' is not a verb. The verbs are {string.Join(", ", Verbs.Select(verb => verb.Name))}. Run 'registerai help'.");
         }
 
         if (spec.Verb is Verb.Help)
         {
+            var about = string.Join(' ', args.Skip(1));
+
             return args.Count switch
             {
                 1 => new Parsed(Outcome.Help),
-                2 when Verbs.FirstOrDefault(verb => verb.Name == args[1]) is { } about => new Parsed(Outcome.Help, Verb: about),
+                2 when about is "path" => new Parsed(Outcome.Help, Topics: PathSpecs()),
+                2 or 3 when Verbs.FirstOrDefault(verb => verb.Name == about) is { } named => new Parsed(Outcome.Help, Verb: named),
                 2 => Usage(spec, $"'{args[1]}' is not a verb. The verbs are {string.Join(", ", Verbs.Select(verb => verb.Name))}."),
+                3 when args[1] is "path" => Usage(spec, $"'{about}' is not a verb. The path verbs are path add and path remove."),
                 _ => Usage(spec, "help takes at most one verb."),
             };
         }
 
         return ParseVerb(spec, args);
+    }
+
+    /// <summary>The two path verbs, add first.</summary>
+    /// <returns>Their rows.</returns>
+    public static List<VerbSpec> PathSpecs() => [.. Verbs.Where(verb => verb.Verb is Verb.PathAdd or Verb.PathRemove)];
+
+    /// <summary>
+    /// Reads <c>path add &lt;folder&gt;</c> and <c>path remove &lt;folder&gt;</c>: the one
+    /// folder, and <c>--dry-run</c> before or after it.
+    /// </summary>
+    /// <remarks>
+    /// path add takes only a full path to a folder that exists, so it never puts an
+    /// entry on the PATH that names nothing. path remove takes the entry as the PATH
+    /// spells it, which may be a variable or a folder that is gone: removing those is
+    /// what it is for.
+    /// </remarks>
+    private static Parsed ParsePath(IReadOnlyList<string> args)
+    {
+        if (args.Count is 2 && args[1] is "--help" or "-h")
+        {
+            return new Parsed(Outcome.Help, Topics: PathSpecs());
+        }
+
+        if (args.Count is 1)
+        {
+            return Usage(null, "path needs add or remove: registerai path add <folder>, registerai path remove <folder>.");
+        }
+
+        if (PathSpecs().FirstOrDefault(verb => verb.Name == "path " + args[1]) is not { } spec)
+        {
+            return Usage(null, $"'path {args[1]}' is not a verb. The path verbs are path add and path remove.");
+        }
+
+        string? folder = null;
+        var dryRun = false;
+
+        foreach (var argument in args.Skip(2))
+        {
+            if (argument is "--help" or "-h")
+            {
+                return new Parsed(Outcome.Help, Verb: spec);
+            }
+
+            if (argument.StartsWith("--", StringComparison.Ordinal))
+            {
+                var name = argument.Split('=')[0];
+
+                if (argument is not "--dry-run")
+                {
+                    return Usage(spec, Options.Any(option => option.Name == name)
+                        ? $"{name} is not an option of {spec.Name}. Run 'registerai help {spec.Name}'."
+                        : $"'{argument}' is not an option. Run 'registerai help {spec.Name}'.");
+                }
+
+                if (dryRun)
+                {
+                    return Usage(spec, "--dry-run was given more than once.");
+                }
+
+                dryRun = true;
+                continue;
+            }
+
+            if (folder is not null)
+            {
+                return Usage(spec, $"{spec.Name} takes one folder, and '{argument}' is a second. Quote a folder whose name has a space.");
+            }
+
+            folder = argument;
+        }
+
+        if (folder is null || folder.Trim().Length is 0)
+        {
+            return Usage(spec, $"{spec.Name} needs the folder: registerai {spec.Name} <folder>.");
+        }
+
+        if (folder.Contains(UserPath.Separator, StringComparison.Ordinal))
+        {
+            return Usage(spec, $"'{folder}' holds a ';', which separates PATH entries, so it cannot be one entry.");
+        }
+
+        if (folder.Contains('"', StringComparison.Ordinal))
+        {
+            return Usage(spec, $"Give the folder without quotes: {folder}");
+        }
+
+        if (spec.Verb is Verb.PathAdd)
+        {
+            if (!Path.IsPathFullyQualified(folder))
+            {
+                return Usage(spec, $"'{folder}' is not a full path. path add puts only a full path on the PATH.");
+            }
+
+            if (!Directory.Exists(folder))
+            {
+                return Usage(spec, $"'{folder}' is not a folder that exists. path add puts only an existing folder on the PATH, so it never adds an entry that names nothing.");
+            }
+
+            folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+        }
+        else
+        {
+            folder = folder.Trim();
+        }
+
+        return new Parsed(Outcome.Run, new Request { Verb = spec.Verb, Folder = folder, DryRun = dryRun }, spec);
     }
 
     private static Parsed ParseVerb(VerbSpec spec, IReadOnlyList<string> args)
@@ -461,6 +616,18 @@ internal static partial class CommandLine
             return Usage(spec, $"--timeout '{seconds}' is not a whole number of seconds from 1 to {MaximumTimeoutSeconds}.");
         }
 
+        string? pathFolder = null;
+
+        if (one("--path-folder") is { } named)
+        {
+            if (!Path.IsPathFullyQualified(named))
+            {
+                return Usage(spec, $"--path-folder '{named}' is not a full path.");
+            }
+
+            pathFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(named));
+        }
+
         var executables = new Dictionary<ClientId, string>();
 
         foreach (var pair in many("--client-exe"))
@@ -504,6 +671,7 @@ internal static partial class CommandLine
                 ClientExecutables = executables,
                 Command = tail.Count > 0 ? tail[0] : null,
                 Arguments = [.. tail.Skip(1)],
+                PathFolder = pathFolder,
             },
             spec);
     }

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 - 2026-10-03
+
+- `path add <folder>` and `path remove <folder>` change the user PATH,
+  `HKEY_CURRENT_USER\Environment\Path`, when asked to and at no other time. Adding a
+  folder that is there already writes nothing; removing takes off every entry naming
+  exactly that folder, case aside. The value keeps its kind, every write is read back
+  before it counts and is then announced to running programs, and both take
+  `--dry-run`. `path add` refuses a folder that does not exist.
+- `status` lists the entries of the user PATH that name a folder that does not exist,
+  each with the `registerai path remove` line for it, and removes none of them.
+- `--path-folder <dir>` names the folder a bare command lives in. The `path-missing`
+  advice then reports when that folder is not on the PATH and carries the
+  `registerai path add` line for it, in place of the Windows editor for environment
+  variables it offered before.
+- Every JSON document gains a `path` key: the user PATH block for `status` and the path
+  verbs, and null in the others. The schema number stays 1.
+
 ## 0.1.0 - 2026-10-03
 
 - The repository: licence, build settings, banned calls, house-rule tests and the

@@ -7,7 +7,8 @@ namespace RegisterAI;
 
 /// <summary>
 /// Everything the engine reads from outside itself, in one place, so the decision
-/// tests can hand it a scratch profile, a scratch PATH and a fake client.
+/// tests can hand it a scratch profile, a scratch PATH, a scratch user PATH store and
+/// a fake client.
 /// </summary>
 internal sealed class Machine
 {
@@ -32,6 +33,12 @@ internal sealed class Machine
     /// <summary>Runs a client.</summary>
     public required IRunner Runner { get; init; }
 
+    /// <summary>
+    /// The user PATH that <c>path add</c> and <c>path remove</c> change and status reads.
+    /// Only <see cref="Real"/> hands out the real one.
+    /// </summary>
+    public required IUserPathStore UserPath { get; init; }
+
     /// <summary>This machine.</summary>
     /// <returns>The real machine.</returns>
     public static Machine Real() => new()
@@ -42,6 +49,7 @@ internal sealed class Machine
         AppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.DoNotVerify),
         NewProgramPath = RegistryPath,
         Runner = new ProcessRunner(),
+        UserPath = RegistryUserPathStore.User,
     };
 
     /// <summary>

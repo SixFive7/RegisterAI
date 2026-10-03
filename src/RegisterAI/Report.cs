@@ -5,7 +5,11 @@ using System.Text.Json;
 
 namespace RegisterAI;
 
-/// <summary>The documents status, register, unregister and a usage error write.</summary>
+/// <summary>
+/// The documents status, register, unregister, the path verbs and a usage error write.
+/// Every one has the same keys; <c>server</c>, <c>results</c> and <c>path</c> are empty
+/// or null where a verb has nothing to say in them.
+/// </summary>
 internal static class Report
 {
     /// <summary>A command line that was not understood. Nothing was run.</summary>
@@ -23,6 +27,29 @@ internal static class Report
             writer.WriteNull("server");
             writer.WriteStartArray("results");
             writer.WriteEndArray();
+            writer.WriteNull("path");
+            writer.WriteEndObject();
+        });
+
+    /// <summary>What <c>path add</c> or <c>path remove</c> found and did.</summary>
+    /// <param name="terminal">Where it goes.</param>
+    /// <param name="request">What was asked.</param>
+    /// <param name="report">What happened to the user PATH.</param>
+    public static void WritePath(Terminal terminal, Request request, PathReport report) =>
+        Json.Write(terminal, writer =>
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(report);
+
+            writer.WriteStartObject();
+            writer.WriteHeader(Name(request.Verb));
+            writer.WriteBoolean("dryRun", request.DryRun);
+            writer.WriteNumber("exitCode", report.ExitCode);
+            writer.WriteNull("error");
+            writer.WriteNull("server");
+            writer.WriteStartArray("results");
+            writer.WriteEndArray();
+            WritePathBlock(writer, report);
             writer.WriteEndObject();
         });
 
@@ -41,9 +68,19 @@ internal static class Report
             writer.WriteBoolean("dryRun", request.DryRun);
             writer.WriteNumber("exitCode", exitCode);
             writer.WriteString("error", error);
-            WriteServer(writer, request);
+
+            if (request.Verb is Verb.PathAdd or Verb.PathRemove)
+            {
+                writer.WriteNull("server");
+            }
+            else
+            {
+                WriteServer(writer, request);
+            }
+
             writer.WriteStartArray("results");
             writer.WriteEndArray();
+            writer.WriteNull("path");
             writer.WriteEndObject();
         });
 
@@ -134,8 +171,58 @@ internal static class Report
             }
 
             writer.WriteEndArray();
+
+            if (result.Path is { } path)
+            {
+                WritePathBlock(writer, path);
+            }
+            else
+            {
+                writer.WriteNull("path");
+            }
+
             writer.WriteEndObject();
         });
+
+    /// <summary>
+    /// The user PATH block: where it is, what a path verb did to it, and every entry
+    /// naming a folder that does not exist, each with the line that takes it off.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="report">The report.</param>
+    public static void WritePathBlock(Utf8JsonWriter writer, PathReport report)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(report);
+
+        writer.WriteStartObject("path");
+        writer.WriteString("where", report.Where);
+        writer.WriteNullableString("folder", report.Folder);
+        writer.WriteNullableString("action", report.Action?.Word());
+
+        if (report.Announced is { } announced)
+        {
+            writer.WriteBoolean("announced", announced);
+        }
+        else
+        {
+            writer.WriteNull("announced");
+        }
+
+        writer.WriteStartArray("dead");
+
+        foreach (var entry in report.Dead)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("entry", entry);
+            writer.WriteString("command", UserPath.RemoveCommand(entry));
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+        writer.WriteNullableString("error", report.Error);
+        writer.WriteEndObject();
+    }
 
     /// <summary>The server block: what arrived, with environment values left out.</summary>
     /// <param name="writer">The writer.</param>

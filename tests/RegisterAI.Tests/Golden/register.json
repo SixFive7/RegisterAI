@@ -145,5 +145,6 @@
       "manual": "codex mcp add demo --env 'DEMO_HOME=<value>' -- '<scratch>\\apps\\Demo\\demo-mcp.exe' --stdio",
       "error": null
     }
-  ]
+  ],
+  "path": null
 }

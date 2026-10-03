@@ -85,6 +85,7 @@ internal sealed class Bench : IDisposable
             AppData = Path.Combine(Profile, "AppData", "Roaming"),
             NewProgramPath = () => NewProgramPath,
             Runner = Runner,
+            UserPath = UserPath,
         };
     }
 
@@ -111,6 +112,9 @@ internal sealed class Bench : IDisposable
 
     /// <summary>The PATH a new program would get.</summary>
     public List<string> NewProgramPath { get; } = [];
+
+    /// <summary>The user PATH status reads and the path verbs write, in memory.</summary>
+    public ScratchUserPath UserPath { get; } = new();
 
     /// <summary>The fake client runner.</summary>
     public ModelRunner Runner { get; }

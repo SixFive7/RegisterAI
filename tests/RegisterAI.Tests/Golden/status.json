@@ -51,5 +51,13 @@
       "advice": [],
       "error": null
     }
-  ]
+  ],
+  "path": {
+    "where": "HKEY_CURRENT_USER\\Environment\\Path",
+    "folder": null,
+    "action": null,
+    "announced": null,
+    "dead": "<this machine's dead user PATH entries>",
+    "error": null
+  }
 }

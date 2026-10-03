@@ -36,6 +36,10 @@
          without them a failure reads as a resource key and not a sentence. -->
     <StackTraceSupport>true</StackTraceSupport>
     <UseSystemResourceKeys>false</UseSystemResourceKeys>
+    <!-- The one P/Invoke, the environment broadcast after a PATH write, is
+         generated at compile time by LibraryImport, whose marshalling code
+         needs this. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup Label="Native compilation">

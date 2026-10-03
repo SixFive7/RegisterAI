@@ -18,7 +18,9 @@ user) and project scope (one folder).
   caller's command, or whose command resolves to a file under a folder the caller
   names with `--owned-root`. Every other entry is reported as `foreign` and left alone.
 - A configuration it cannot read is reported as `unreadable`, never as empty.
-- It never prompts, never reads stdin, never edits PATH, and makes no network call.
+- It never prompts, never reads stdin, and makes no network call.
+- It changes the user PATH only when asked to, with `path add` and `path remove`, and
+  never as a side effect of another verb.
 
 ## Install
 
@@ -59,13 +61,42 @@ including the schema of every document.
 
 Claude Code expands `${NAME}` and `${NAME:-default}` in a command; Codex expands
 nothing. A bare file name is looked up on the PATH a newly started program gets, and
-reported in `resolvesTo`.
+reported in `resolvesTo`. Name the folder it lives in with `--path-folder`, and the
+`path-missing` advice says when that folder is not on the PATH and carries the
+`registerai path add` line for it.
+
+## The user PATH
+
+```powershell
+registerai path add 'C:\Apps\Demo'
+registerai path remove 'C:\Apps\Demo'
+```
+
+Both change `HKEY_CURRENT_USER\Environment\Path` and nothing else, and both take
+`--dry-run`.
+
+- `path add` takes only a full path to a folder that exists, so it never adds an entry
+  that names nothing. It appends the folder after the entries already there and writes
+  nothing when the folder is there already.
+- `path remove` takes off every entry naming exactly that folder, compared without case
+  and without a trailing separator. An entry spelled another way, such as with a
+  variable, is left alone.
+- The value keeps its kind (`REG_EXPAND_SZ` or `REG_SZ`); a value that did not exist is
+  created as `REG_EXPAND_SZ`. An add and the remove after it give back the value as it
+  was, byte for byte.
+- Each write is read back before it counts, and then announced to running programs with
+  `WM_SETTINGCHANGE`. A program that does not act on that announcement keeps the PATH it
+  started with, and so does everything it starts.
+
+`status` lists the entries of the user PATH that name a folder that does not exist, each
+with the `registerai path remove` line that takes it off. It removes none of them. An
+entry that is not a full path once expanded, and a network path, are not judged.
 
 ## Output and exit codes
 
-`status`, `register`, `unregister`, `describe` and every usage error write exactly one
-JSON document to stdout, UTF-8 with LF line ends, carrying `"schema": 1`. Diagnostics
-go to stderr. `--env` values are never echoed.
+`status`, `register`, `unregister`, `path add`, `path remove`, `describe` and every
+usage error write exactly one JSON document to stdout, UTF-8 with LF line ends, carrying
+`"schema": 1`. Diagnostics go to stderr. `--env` values are never echoed.
 
 | Code | Meaning |
 |---|---|
@@ -97,8 +128,11 @@ dotnet test              # the contract tests run the published executable
 ```
 
 The tests drive the executable against a fake client and never touch a real client
-configuration. To refuse commits that carry details of your machine, turn on the hook
-once per clone with `git config core.hooksPath build/hooks`.
+configuration. They never write your user PATH either: the path verbs are tested against
+a PATH kept in memory or under a scratch registry key, the executable only with
+`--dry-run`, and the run fails if your PATH reads differently after it than before. To
+refuse commits that carry details of your machine, turn on the hook once per clone with
+`git config core.hooksPath build/hooks`.
 
 ## Compatibility
 

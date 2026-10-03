@@ -160,6 +160,8 @@ internal sealed class EndToEndTests
         var schema = describe.RootElement.GetProperty("output");
         var definitions = schema.GetProperty("$defs");
 
+        var folder = Directory.CreateDirectory(scratch.In("never-on-a-path")).FullName;
+
         string[][] runs =
         [
             ["register", "--name", "demo", "--client", "all", "--scope", "user", .. fakes.Arguments, "--", @"C:\Apps\Demo\demo-mcp.exe", "--stdio"],
@@ -167,6 +169,8 @@ internal sealed class EndToEndTests
             ["status", "--name", "demo", .. fakes.Arguments],
             ["unregister", "--name", "demo", "--client", "all", "--scope", "user", .. fakes.Arguments, "--", @"C:\Apps\Demo\demo-mcp.exe"],
             ["status", "--name", "bad name"],
+            ["path", "add", folder, "--dry-run"],
+            ["path", "remove", folder, "--dry-run"],
         ];
 
         foreach (var arguments in runs)
@@ -175,6 +179,27 @@ internal sealed class EndToEndTests
             var root = document.RootElement;
 
             await Assert.That(Keys(root)).IsEqualTo(Required(schema));
+
+            // The user PATH block: an object for status and the path verbs, null otherwise.
+            var path = root.GetProperty("path");
+            var reportsPath = arguments[0] is "path" || (arguments[0] is "status" && root.GetProperty("exitCode").GetInt32() is not 2);
+
+            await Assert.That(path.ValueKind).IsEqualTo(reportsPath ? JsonValueKind.Object : JsonValueKind.Null);
+
+            if (reportsPath)
+            {
+                await Assert.That(Keys(path)).IsEqualTo(Required(definitions.GetProperty("userPath")));
+
+                foreach (var dead in path.GetProperty("dead").EnumerateArray())
+                {
+                    await Assert.That(Keys(dead)).IsEqualTo(Required(definitions.GetProperty("deadEntry")));
+                }
+
+                if (path.GetProperty("action").ValueKind is not JsonValueKind.Null)
+                {
+                    await Assert.That(Words(definitions.GetProperty("userPath").GetProperty("properties").GetProperty("action"))).Contains(path.GetProperty("action").GetString()!);
+                }
+            }
 
             foreach (var result in root.GetProperty("results").EnumerateArray())
             {
@@ -213,13 +238,22 @@ internal sealed class EndToEndTests
         }
     }
 
-    /// <summary>The document with the scratch folder and the version replaced by placeholders.</summary>
+    /// <summary>
+    /// The document with the scratch folder, the version and the dead entries of this
+    /// machine's user PATH replaced by placeholders. The dead entries are this machine's,
+    /// so they are never part of a committed document.
+    /// </summary>
     private static string Normalize(string output, string scratch)
     {
         var escaped = JsonSerializer.Serialize(scratch)[1..^1];
         var node = JsonNode.Parse(output)!;
 
         node["version"] = "<version>";
+
+        if (node["path"] is JsonObject path)
+        {
+            path["dead"] = "<this machine's dead user PATH entries>";
+        }
 
         return node.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })
             .Replace(escaped, "<scratch>", StringComparison.OrdinalIgnoreCase)

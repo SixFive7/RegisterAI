@@ -37,8 +37,26 @@ internal sealed partial class ContractTests
         yield return () => (["register", "--name", "demo", "--client", "all", "--scope", "user", "--env", "1BAD=x", "--", "x.exe"], "register");
         yield return () => (["register", "--name", "demo", "--client", "all", "--scope", "user", "--client-exe", "cursor=" + @"C:\Tools\cursor.exe", "--", "x.exe"], "register");
         yield return () => (["unregister", "--name", "demo", "--client", "all", "--scope", "user", "--take-over"], "unregister");
+        yield return () => (["unregister", "--name", "demo", "--client", "all", "--scope", "user", "--path-folder", @"X:\Demo"], "unregister");
+        yield return () => (["status", "--name", "demo", "--path-folder", "relative"], "status");
         yield return () => (["describe", "--name", "demo"], "describe");
         yield return () => (["license", "--", "x"], "license");
+
+        // The path verbs. Every folder below is one no machine has, so not even a
+        // parser that let a row through could reach the person's PATH with it.
+        yield return () => (["path"], null);
+        yield return () => (["path", "frobnicate", @"X:\does-not-exist"], null);
+        yield return () => (["path", "add"], "path add");
+        yield return () => (["path", "add", "--dry-run"], "path add");
+        yield return () => (["path", "add", "relative"], "path add");
+        yield return () => (["path", "add", @"X:\does-not-exist"], "path add");
+        yield return () => (["path", "add", @"X:\does-not-exist;X:\also-not"], "path add");
+        yield return () => (["path", "add", @"X:\does-not-exist", @"X:\also-not"], "path add");
+        yield return () => (["path", "add", @"X:\does-not-exist", "--force"], "path add");
+        yield return () => (["path", "add", @"X:\does-not-exist", "--dry-run", "--dry-run"], "path add");
+        yield return () => (["path", "remove"], "path remove");
+        yield return () => (["path", "remove", @"X:\a;X:\b"], "path remove");
+        yield return () => (["path", "remove", @"X:\does-not-exist", "--name", "demo"], "path remove");
     }
 
     /// <summary>--version prints the version and a line feed, and nothing else.</summary>
@@ -181,6 +199,71 @@ internal sealed partial class ContractTests
         await Assert.That(verb.Output).Contains("--take-over");
         await Assert.That(verb.Output).DoesNotContain("STATES");
         await Assert.That(full.OutputBytes.Contains((byte)'\r')).IsFalse();
+    }
+
+    /// <summary>
+    /// help path, path --help and help for each path verb: text naming both verbs, the
+    /// folder and the dry run.
+    /// </summary>
+    /// <returns>The test.</returns>
+    [Test]
+    public async Task HelpCoversBothPathVerbs()
+    {
+        using var scratch = Scratch.Create("help-path");
+        var sandbox = Tool.Sandbox(scratch);
+
+        var both = await Tool.RunAsync(sandbox, "help", "path");
+        var asked = await Tool.RunAsync(sandbox, "path", "--help");
+        var add = await Tool.RunAsync(sandbox, "help", "path", "add");
+        var remove = await Tool.RunAsync(sandbox, "path", "remove", "--help");
+
+        await Assert.That(both.ExitCode).IsEqualTo(0);
+        await Assert.That(asked.Output).IsEqualTo(both.Output);
+        await Assert.That(both.Output).StartsWith("registerai path add <folder> [--dry-run]");
+        await Assert.That(both.Output).Contains("registerai path remove <folder> [--dry-run]");
+        await Assert.That(add.ExitCode).IsEqualTo(0);
+        await Assert.That(add.Output).StartsWith("registerai path add <folder> [--dry-run]");
+        await Assert.That(add.Output).DoesNotContain("path remove <folder>");
+        await Assert.That(remove.Output).StartsWith("registerai path remove <folder> [--dry-run]");
+    }
+
+    /// <summary>
+    /// path add and path remove with --dry-run, against the person's own PATH, which
+    /// they read and never write: one document each, the folder, the decision, nothing
+    /// announced, and the PATH byte for byte what it was.
+    /// </summary>
+    /// <returns>The test.</returns>
+    [Test]
+    public async Task ThePathVerbsDecideAgainstTheUsersPathAndADryRunWritesNothing()
+    {
+        using var scratch = Scratch.Create("path-dry");
+        var sandbox = Tool.Sandbox(scratch);
+        var folder = Directory.CreateDirectory(scratch.In("never-on-a-path")).FullName;
+        var before = UserPathGuard.Reading();
+
+        var add = await Tool.RunAsync(sandbox, "path", "add", folder, "--dry-run");
+        var remove = await Tool.RunAsync(sandbox, "path", "remove", "--dry-run", folder);
+
+        await Assert.That(UserPathGuard.Reading()).IsEqualTo(before);
+
+        foreach (var (run, verb, action) in new[] { (add, "path add", "added"), (remove, "path remove", "none") })
+        {
+            await Assert.That(run.ExitCode).IsEqualTo(0);
+
+            using var document = Tool.Document(run);
+            var root = document.RootElement;
+            var path = root.GetProperty("path");
+
+            await Assert.That(root.GetProperty("verb").GetString()).IsEqualTo(verb);
+            await Assert.That(root.GetProperty("dryRun").GetBoolean()).IsTrue();
+            await Assert.That(root.GetProperty("server").ValueKind).IsEqualTo(JsonValueKind.Null);
+            await Assert.That(root.GetProperty("results").GetArrayLength()).IsEqualTo(0);
+            await Assert.That(path.GetProperty("where").GetString()).IsEqualTo(@"HKEY_CURRENT_USER\Environment\Path");
+            await Assert.That(path.GetProperty("folder").GetString()).IsEqualTo(folder);
+            await Assert.That(path.GetProperty("action").GetString()).IsEqualTo(action);
+            await Assert.That(path.GetProperty("announced").ValueKind).IsEqualTo(JsonValueKind.Null);
+            await Assert.That(path.GetProperty("error").ValueKind).IsEqualTo(JsonValueKind.Null);
+        }
     }
 
     /// <summary>license prints the repository's LICENSE file, byte for byte.</summary>
