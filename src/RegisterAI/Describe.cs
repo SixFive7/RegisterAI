@@ -23,7 +23,6 @@ internal static class Describe
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "title": "RegisterAI status, register and unregister documents, and usage errors",
           "type": "object",
-          "additionalProperties": false,
           "required": ["tool", "version", "schema", "verb", "dryRun", "exitCode", "error", "server", "results"],
           "properties": {
             "tool": { "const": "registerai" },
@@ -38,7 +37,6 @@ internal static class Describe
                 { "type": "null" },
                 {
                   "type": "object",
-                  "additionalProperties": false,
                   "required": ["name", "command", "args", "env"],
                   "properties": {
                     "name": { "type": "string" },
@@ -58,7 +56,6 @@ internal static class Describe
           "$defs": {
             "entry": {
               "type": "object",
-              "additionalProperties": false,
               "required": ["state", "command", "args", "env", "resolvesTo"],
               "properties": {
                 "state": { "enum": "@STATES@" },
@@ -70,7 +67,6 @@ internal static class Describe
             },
             "advice": {
               "type": "object",
-              "additionalProperties": false,
               "required": ["code", "text", "command"],
               "properties": {
                 "code": { "enum": "@ADVICE@" },
@@ -80,7 +76,6 @@ internal static class Describe
             },
             "ran": {
               "type": "object",
-              "additionalProperties": false,
               "required": ["argv", "exitCode", "timedOut"],
               "properties": {
                 "argv": { "type": "array", "items": { "type": "string" }, "description": "The client and its arguments, with --env values replaced by <redacted>." },
@@ -102,7 +97,6 @@ internal static class Describe
             "statusResult": {
               "allOf": [{ "$ref": "#/$defs/place" }],
               "type": "object",
-              "unevaluatedProperties": false,
               "required": ["state", "command", "args", "env", "resolvesTo", "advice", "error"],
               "properties": {
                 "state": { "enum": "@STATES@" },
@@ -117,7 +111,6 @@ internal static class Describe
             "changeResult": {
               "allOf": [{ "$ref": "#/$defs/place" }],
               "type": "object",
-              "unevaluatedProperties": false,
               "required": ["before", "action", "after", "ran", "said", "advice", "manual", "error"],
               "properties": {
                 "before": { "$ref": "#/$defs/entry" },

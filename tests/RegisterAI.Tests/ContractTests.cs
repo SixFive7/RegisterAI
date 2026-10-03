@@ -204,8 +204,9 @@ internal sealed partial class ContractTests
     public async Task StdinIsNeverRead()
     {
         using var scratch = Scratch.Create("stdin");
+        var fakes = FakeClients.Install(scratch);
 
-        foreach (var arguments in new[] { new[] { "describe" }, ["status", "--name", "demo", "--client", "claude-code"], ["frobnicate"] })
+        foreach (var arguments in new[] { new[] { "describe" }, ["status", "--name", "demo", .. fakes.Arguments], ["frobnicate"] })
         {
             var run = await Child.RunAsync(Published.Require(), arguments, TimeSpan.FromSeconds(30), environment: Tool.Sandbox(scratch), holdInputOpen: true);
 
@@ -236,9 +237,10 @@ internal sealed partial class ContractTests
             "--stdio",
         ];
 
+        var fakes = FakeClients.Install(scratch);
         var run = await Tool.RunAsync(
             Tool.Sandbox(scratch),
-            ["register", "--name", "demo", "--client", "all", "--scope", "user", "--dry-run", "--env", "DEMO_HOME=secret-value", "--", .. tail]);
+            ["register", "--name", "demo", "--client", "all", "--scope", "user", "--dry-run", "--env", "DEMO_HOME=secret-value", .. fakes.Arguments, "--", .. tail]);
 
         using var document = Tool.Document(run);
         var server = document.RootElement.GetProperty("server");

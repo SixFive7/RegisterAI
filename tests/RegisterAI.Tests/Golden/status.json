@@ -1,0 +1,55 @@
+{
+  "tool": "registerai",
+  "version": "<version>",
+  "schema": 1,
+  "verb": "status",
+  "dryRun": false,
+  "exitCode": 0,
+  "error": null,
+  "server": {
+    "name": "demo",
+    "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+    "args": [
+      "--stdio"
+    ],
+    "env": []
+  },
+  "results": [
+    {
+      "client": "claude-code",
+      "scope": "user",
+      "project": null,
+      "clientPath": "<scratch>\\clients\\claude.exe",
+      "config": "<scratch>\\profile\\.claude\\.claude.json",
+      "state": "ours",
+      "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+      "args": [
+        "--stdio"
+      ],
+      "env": [
+        "DEMO_HOME"
+      ],
+      "resolvesTo": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+      "advice": [],
+      "error": null
+    },
+    {
+      "client": "codex",
+      "scope": "user",
+      "project": null,
+      "clientPath": "<scratch>\\clients\\codex.exe",
+      "config": "<scratch>\\profile\\.codex\\config.toml",
+      "state": "ours",
+      "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+      "args": [
+        "--stdio"
+      ],
+      "env": [
+        "DEMO_HOME"
+      ],
+      "resolvesTo": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+      "advice": [],
+      "error": null
+    }
+  ]
+}

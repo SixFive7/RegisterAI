@@ -5,4 +5,4 @@ using RegisterAI;
 
 using var terminal = new Terminal();
 
-return await Cli.RunAsync(args, terminal).ConfigureAwait(false);
+return await Cli.RunAsync(args, terminal, Machine.Real()).ConfigureAwait(false);

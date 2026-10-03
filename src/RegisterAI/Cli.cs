@@ -9,10 +9,12 @@ internal static class Cli
     /// <summary>Runs one command line.</summary>
     /// <param name="args">The arguments.</param>
     /// <param name="terminal">Where the document goes.</param>
+    /// <param name="machine">The machine the clients are on.</param>
     /// <returns>The exit code.</returns>
-    public static Task<int> RunAsync(IReadOnlyList<string> args, Terminal terminal)
+    public static async Task<int> RunAsync(IReadOnlyList<string> args, Terminal terminal, Machine machine)
     {
         ArgumentNullException.ThrowIfNull(terminal);
+        ArgumentNullException.ThrowIfNull(machine);
 
         var parsed = CommandLine.Parse(args);
 
@@ -20,15 +22,15 @@ internal static class Cli
         {
             case Outcome.Version:
                 terminal.WriteText(ToolVersion.Text + "\n");
-                return Task.FromResult(0);
+                return 0;
 
             case Outcome.Help:
                 terminal.WriteText(parsed.Verb is { } verb ? HelpText.For(verb) : HelpText.Full());
-                return Task.FromResult(parsed.ExitCode);
+                return parsed.ExitCode;
 
             case Outcome.Usage:
                 Report.WriteUsage(terminal, parsed.Verb?.Name, parsed.Error!);
-                return Task.FromResult(2);
+                return 2;
 
             default:
                 break;
@@ -40,15 +42,32 @@ internal static class Cli
         {
             case Verb.Describe:
                 Describe.Write(terminal);
-                return Task.FromResult(0);
+                return 0;
 
             case Verb.License:
                 terminal.WriteText(LicenseText.Read());
-                return Task.FromResult(0);
+                return 0;
 
             default:
-                Report.WriteStopped(terminal, request, 1, $"{Report.Name(request.Verb)} is not implemented in this build.");
-                return Task.FromResult(1);
+                break;
         }
+
+        EngineResult result;
+
+        try
+        {
+            result = await Engine.RunAsync(request, machine).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // The run's boundary: a defect in this tool is reported as a document and exit code 1, never as a crash with nothing on stdout.
+        catch (Exception failure)
+#pragma warning restore CA1031
+        {
+            terminal.WriteDiagnostic(failure + "\n");
+            Report.WriteStopped(terminal, request, 1, $"RegisterAI stopped on an unexpected error: {failure.GetType().Name}: {failure.Message}");
+            return 1;
+        }
+
+        Report.Write(terminal, request, result);
+        return result.ExitCode;
     }
 }

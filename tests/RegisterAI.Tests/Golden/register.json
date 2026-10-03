@@ -1,0 +1,149 @@
+{
+  "tool": "registerai",
+  "version": "<version>",
+  "schema": 1,
+  "verb": "register",
+  "dryRun": false,
+  "exitCode": 0,
+  "error": null,
+  "server": {
+    "name": "demo",
+    "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+    "args": [
+      "--stdio"
+    ],
+    "env": [
+      "DEMO_HOME"
+    ]
+  },
+  "results": [
+    {
+      "client": "claude-code",
+      "scope": "user",
+      "project": null,
+      "clientPath": "<scratch>\\clients\\claude.exe",
+      "config": "<scratch>\\profile\\.claude\\.claude.json",
+      "before": {
+        "state": "absent",
+        "command": null,
+        "args": [],
+        "env": [],
+        "resolvesTo": null
+      },
+      "action": "added",
+      "after": {
+        "state": "ours",
+        "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+        "args": [
+          "--stdio"
+        ],
+        "env": [
+          "DEMO_HOME"
+        ],
+        "resolvesTo": "<scratch>\\apps\\Demo\\demo-mcp.exe"
+      },
+      "ran": [
+        {
+          "argv": [
+            "<scratch>\\clients\\claude.exe",
+            "mcp",
+            "add",
+            "demo",
+            "--scope",
+            "user",
+            "--env",
+            "DEMO_HOME=<redacted>",
+            "--",
+            "<scratch>\\apps\\Demo\\demo-mcp.exe",
+            "--stdio"
+          ],
+          "exitCode": 0,
+          "timedOut": false
+        }
+      ],
+      "said": "Added stdio MCP server demo with command: <scratch>\\apps\\Demo\\demo-mcp.exe --stdio to user config\nFile modified: <scratch>\\profile\\.claude\\.claude.json",
+      "advice": [
+        {
+          "code": "claude-restart-session",
+          "text": "Claude Code reads its MCP configuration when a session starts. Sessions already open do not see this change until they are restarted.",
+          "command": null
+        }
+      ],
+      "manual": "claude mcp add demo --scope user --env 'DEMO_HOME=<value>' -- '<scratch>\\apps\\Demo\\demo-mcp.exe' --stdio",
+      "error": null
+    },
+    {
+      "client": "codex",
+      "scope": "user",
+      "project": null,
+      "clientPath": "<scratch>\\clients\\codex.exe",
+      "config": "<scratch>\\profile\\.codex\\config.toml",
+      "before": {
+        "state": "absent",
+        "command": null,
+        "args": [],
+        "env": [],
+        "resolvesTo": null
+      },
+      "action": "added",
+      "after": {
+        "state": "ours",
+        "command": "<scratch>\\apps\\Demo\\demo-mcp.exe",
+        "args": [
+          "--stdio"
+        ],
+        "env": [
+          "DEMO_HOME"
+        ],
+        "resolvesTo": "<scratch>\\apps\\Demo\\demo-mcp.exe"
+      },
+      "ran": [
+        {
+          "argv": [
+            "<scratch>\\clients\\codex.exe",
+            "mcp",
+            "list",
+            "--json"
+          ],
+          "exitCode": 0,
+          "timedOut": false
+        },
+        {
+          "argv": [
+            "<scratch>\\clients\\codex.exe",
+            "mcp",
+            "add",
+            "demo",
+            "--env",
+            "DEMO_HOME=<redacted>",
+            "--",
+            "<scratch>\\apps\\Demo\\demo-mcp.exe",
+            "--stdio"
+          ],
+          "exitCode": 0,
+          "timedOut": false
+        },
+        {
+          "argv": [
+            "<scratch>\\clients\\codex.exe",
+            "mcp",
+            "list",
+            "--json"
+          ],
+          "exitCode": 0,
+          "timedOut": false
+        }
+      ],
+      "said": "Added global MCP server 'demo'.",
+      "advice": [
+        {
+          "code": "codex-new-thread",
+          "text": "Codex does not pick up this change in a thread that is already open. Start a new thread to use it.",
+          "command": null
+        }
+      ],
+      "manual": "codex mcp add demo --env 'DEMO_HOME=<value>' -- '<scratch>\\apps\\Demo\\demo-mcp.exe' --stdio",
+      "error": null
+    }
+  ]
+}
