@@ -1,0 +1,52 @@
+<!-- SPDX-FileCopyrightText: 2026 Jori Huisman -->
+<!-- SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RegisterAI</RootNamespace>
+    <AssemblyName>RegisterAI</AssemblyName>
+    <Product>RegisterAI</Product>
+    <Copyright>Copyright 2026 Jori Huisman</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Version">
+    <!-- The version comes from the nearest tag of the form v1.2.3, read by
+         MinVer at build time. Between tags it is the next patch version with a
+         prerelease suffix. The output schema number is separate and lives in
+         the code. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Native compilation">
+    <!-- One self-contained native file. AOT runs at publish only; the
+         analyzers run on every build. -->
+    <PublishAot>true</PublishAot>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <EventSourceSupport>false</EventSourceSupport>
+    <DebuggerSupport>false</DebuggerSupport>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Kept on purpose, measured 2026-10-01 against a probe of this tool:
+         stack trace data costs 155 KB and full exception messages 17 KB, and
+         without them a failure reads as a resource key and not a sentence. -->
+    <StackTraceSupport>true</StackTraceSupport>
+    <UseSystemResourceKeys>false</UseSystemResourceKeys>
+  </PropertyGroup>
+
+  <ItemGroup Label="Native compilation">
+    <!-- Without this the linker writes the build folder into the executable
+         as the debug file's path. With it only the file name remains. -->
+    <LinkerArg Include="/PDBALTPATH:%_PDB%" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+
+</Project>

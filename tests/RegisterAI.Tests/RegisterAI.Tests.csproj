@@ -1,0 +1,17 @@
+<!-- SPDX-FileCopyrightText: 2026 Jori Huisman -->
+<!-- SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- TUnit runs on Microsoft.Testing.Platform, where a test project is an
+         executable. global.json opts dotnet test into that mode. -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RegisterAI.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+
+</Project>

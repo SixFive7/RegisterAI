@@ -1,0 +1,9 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Jori Huisman
+# SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr
+#
+# Refuses a commit whose staged files carry a detail of this machine or of the
+# account using it. Turn it on once per clone:
+#
+#   git config core.hooksPath build/hooks
+exec pwsh -NoProfile -NonInteractive -File "$(git rev-parse --show-toplevel)/build/Find-MachineDetails.ps1"

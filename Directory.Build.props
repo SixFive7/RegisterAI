@@ -1,0 +1,60 @@
+<!-- SPDX-FileCopyrightText: 2026 Jori Huisman -->
+<!-- SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr -->
+<Project>
+
+  <!-- Settings shared by every project. Package versions live in
+       Directory.Packages.props; native compilation is set in the product's own
+       project file. -->
+
+  <PropertyGroup Label="Target and language">
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <LangVersion>latestMajor</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Lets IDE0005 run on build. It also turns on CS1591 for anything
+         public, and every type in this repository is internal. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Warnings are errors">
+    <!-- This property is also what fails a NativeAOT publish on a trim or AOT
+         warning. No NoWarn and no WarningsNotAsErrors anywhere: a test in
+         BuildRuleTests holds that. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);CS0162</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Analyzers">
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup Label="Banned calls">
+    <!-- Every project reads build/BannedSymbols.txt. The product adds its own
+         list beside its project file; the analyzer merges every file of that
+         name it is given. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)build\BannedSymbols.txt" />
+  </ItemGroup>
+
+  <PropertyGroup Label="Restore">
+    <!-- Versions float in Directory.Packages.props and the lock files freeze
+         what a restore resolved. A restore with the force-evaluate option
+         moves them. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Version string">
+    <!-- The version is a wire value in every JSON document, so the SDK must not
+         append a source revision to it. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+</Project>

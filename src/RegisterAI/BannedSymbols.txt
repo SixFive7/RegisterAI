@@ -1,0 +1,11 @@
+; SPDX-FileCopyrightText: 2026 Jori Huisman
+; SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr
+;
+; The product's own bans, merged with build/BannedSymbols.txt by the analyzer.
+;
+; stdout carries exactly one document per run, so one type owns it: Terminal.cs,
+; which suppresses RS0030 where it opens the two output streams. Console.Out
+; also follows the console code page and writes CRLF, and the documents are
+; UTF-8 with LF line ends whatever the console is set to.
+
+T:System.Console;stdout carries exactly one document per run and Terminal owns it. Write through Terminal.

@@ -1,0 +1,10 @@
+<!-- SPDX-FileCopyrightText: 2026 Jori Huisman -->
+<!-- SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr -->
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RegisterAI/RegisterAI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RegisterAI.Tests/RegisterAI.Tests.csproj" />
+  </Folder>
+</Solution>

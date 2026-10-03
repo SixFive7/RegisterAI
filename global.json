@@ -1,0 +1,11 @@
+{
+  "_license": "LicenseRef-RegisterAI-FSL-1.1-MIT-5yr, Copyright 2026 Jori Huisman",
+  "_what_this_is": "The SDK floor and the test runner. The version is a floor: rollForward takes the newest installed SDK. 10.0.401 is the SDK this repository was first built and tested with. The test entry opts dotnet test into Microsoft.Testing.Platform, which TUnit requires.",
+  "sdk": {
+    "version": "10.0.401",
+    "rollForward": "latestMajor"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}

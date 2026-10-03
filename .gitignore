@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Jori Huisman
+# SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr
+
+# Build output. Anchored where a bare name could match a source folder, because
+# git honours core.ignorecase on Windows.
+bin/
+obj/
+/artifacts/
+TestResults/
+*.binlog
+
+# Editors.
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Scratch space for people and agents working in this tree.
+.work/
+
+# Instructions live in AGENTS.md; a CLAUDE.md would make Claude Code skip it.
+CLAUDE.md
+CLAUDE.local.md
+.claude/

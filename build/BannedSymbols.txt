@@ -1,0 +1,26 @@
+; SPDX-FileCopyrightText: 2026 Jori Huisman
+; SPDX-License-Identifier: LicenseRef-RegisterAI-FSL-1.1-MIT-5yr
+;
+; Read by Microsoft.CodeAnalysis.BannedApiAnalyzers for every project, product and
+; tests alike, at error severity. Format: <DocumentationCommentId>;<message>
+;
+; A call site that needs one of these suppresses RS0030 on that line, with the
+; reason beside it, so the exception is visible in a diff.
+
+M:System.Diagnostics.Process.GetProcessesByName(System.String);Never select a process by image name. It cannot tell a process this tool started from one somebody else is running. Act on the Process object you started.
+M:System.Diagnostics.Process.GetProcessesByName(System.String,System.String);Never select a process by image name, on this machine or another.
+M:System.Diagnostics.Process.Kill(System.Boolean);Never kill a process tree. The walk follows parent links that can be reused, and it can reach processes this tool never started. Kill only the process you started.
+M:System.IO.Directory.Delete(System.String,System.Boolean);Never delete a directory tree recursively. Delete what you created, one entry at a time, and leave anything you did not create.
+M:System.IO.DirectoryInfo.Delete(System.Boolean);Never delete a directory tree recursively. Delete what you created, one entry at a time, and leave anything you did not create.
+M:System.Diagnostics.Process.WaitForExit(System.Int32);Never the timed wait alone: it returns without draining the asynchronous readers, so the end of the output is lost. Follow it with a bare WaitForExit().
+M:System.Diagnostics.Process.WaitForExit(System.TimeSpan);Never the timed wait alone: it returns without draining the asynchronous readers, so the end of the output is lost. Follow it with a bare WaitForExit().
+M:System.Diagnostics.Process.Start(System.String);Start a process through a ProcessStartInfo that sets CreateNoWindow and a UTF-8 output encoding. This overload can set neither.
+M:System.Diagnostics.Process.Start(System.String,System.String);Start a process through a ProcessStartInfo that sets CreateNoWindow and a UTF-8 output encoding. This overload can set neither.
+M:System.Diagnostics.Process.Start(System.String,System.Collections.Generic.IEnumerable{System.String});Start a process through a ProcessStartInfo that sets CreateNoWindow and a UTF-8 output encoding. This overload can set neither.
+M:System.Console.Read;This tool never reads stdin. A caller pipes nothing to it and a client may be waiting on the same console.
+M:System.Console.ReadLine;This tool never reads stdin. A caller pipes nothing to it and a client may be waiting on the same console.
+M:System.Console.ReadKey;This tool never reads stdin, and ReadKey throws when stdin is redirected.
+M:System.Console.ReadKey(System.Boolean);This tool never reads stdin, and ReadKey throws when stdin is redirected.
+M:System.Console.OpenStandardInput;This tool never reads stdin.
+M:System.Console.OpenStandardInput(System.Int32);This tool never reads stdin.
+P:System.Console.In;This tool never reads stdin.
