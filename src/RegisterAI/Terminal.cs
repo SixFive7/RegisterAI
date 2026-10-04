@@ -11,9 +11,9 @@ namespace RegisterAI;
 /// <remarks>
 /// <para>
 /// stdout carries exactly one document per run: a JSON document for
-/// <c>status</c>, <c>register</c>, <c>unregister</c>, <c>describe</c> and every
-/// usage error, and plain text for <c>help</c>, <c>license</c> and
-/// <c>--version</c>. stderr carries diagnostics a person may want and a program
+/// <c>status</c>, <c>register</c>, <c>unregister</c>, <c>path add</c>,
+/// <c>path remove</c>, <c>describe</c> and every usage error, and plain text for
+/// <c>help</c>, <c>license</c> and <c>--version</c>. stderr carries diagnostics a person may want and a program
 /// can ignore.
 /// </para>
 /// <para>

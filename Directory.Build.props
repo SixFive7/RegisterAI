@@ -19,8 +19,8 @@
 
   <PropertyGroup Label="Warnings are errors">
     <!-- This property is also what fails a NativeAOT publish on a trim or AOT
-         warning. No NoWarn and no WarningsNotAsErrors anywhere: a test in
-         BuildRuleTests holds that. -->
+         warning. No NoWarn and no WarningsNotAsErrors anywhere:
+         HouseRuleTests.WarningsAreErrorsAndNoBuildFileSuppressesOne holds that. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>$(WarningsAsErrors);CS0162</WarningsAsErrors>
   </PropertyGroup>

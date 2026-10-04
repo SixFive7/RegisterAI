@@ -6,7 +6,7 @@ copied into scratch, with `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `USERPROFILE` and `
 pointed into scratch. To re-establish all of it, publish and run the suite; to see one
 fact, run its test.
 
-Measured 2026-10-04 at Claude Code 2.1.288 and codex-cli 0.159.0-alpha.12.1, on
+Measured 2026-10-04 at Claude Code 2.1.289 and codex-cli 0.159.0-alpha.12.1, on
 Windows 11 x64.
 
 ## Claude Code
@@ -38,7 +38,7 @@ back, so a client that changes its words changes only what `said` shows.
 `mcp list --json` prints environment values. RegisterAI keeps only the names.
 
 That Codex does not expand a variable when it starts a server is not held by a test
-here. It was measured on 2026-09-24 at codex-cli 0.155.0-alpha.9.2, in the project this
-tool was extracted from: `${LOCALAPPDATA}`, `$LOCALAPPDATA`, `%LOCALAPPDATA%` and `~` in
-a command started nothing in 48 attempts. RegisterAI's ownership rule follows it:
-Codex commands are compared as written.
+here. It was measured on 2026-09-24 at codex-cli 0.155.0-alpha.9.2: a command written
+with `${LOCALAPPDATA}`, `$LOCALAPPDATA`, `%LOCALAPPDATA%` or `~` started nothing in 48
+attempts. RegisterAI's ownership rule follows it: Codex commands are compared as
+written.

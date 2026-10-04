@@ -6,17 +6,17 @@
 Cuts a release: tags, publishes, tests, scans, writes SHA256SUMS and uploads two assets.
 
 .DESCRIPTION
-Runs from a clean tree whose HEAD is pushed and whose CHANGELOG.md has a section for
-the version. In order:
+Runs from a clean tree whose HEAD is pushed, whose CHANGELOG.md has a
+'## [<Version>] - <date>' section and nothing under '## [Unreleased]'. In order:
 
-  1. tags HEAD as v<Version>, so MinVer stamps that version into the build;
+  1. builds the release notes from CHANGELOG.md with New-ReleaseNotes.ps1, then tags
+     HEAD as v<Version>, so MinVer stamps that version into the build;
   2. publishes and checks that --version prints exactly <Version>;
   3. runs the whole suite with REGISTERAI_RELEASE_RUN=1, which turns a missing real
      client into a failure;
   4. scans the executable with Find-MachineDetails.ps1;
   5. writes artifacts\release\RegisterAI.exe and SHA256SUMS and checks the sums;
-  6. pushes the tag and creates the GitHub release with the two files, its notes taken
-     from CHANGELOG.md.
+  6. pushes the tag and creates the GitHub release with the two files and the notes.
 
 Each step stops the script on failure. A tag made in step 1 stays local until step 6.
 
@@ -58,9 +58,17 @@ try {
         throw 'The working tree has changes. Commit or remove them first.'
     }
 
-    $notes = [regex]::Match((Get-Content -Raw CHANGELOG.md), "(?ms)^## $([regex]::Escape($Version)) .*?(?=^## |\z)").Value.Trim()
-    if (-not $notes) {
-        throw "CHANGELOG.md has no '## $Version' section."
+    $changelog = (Get-Content -Raw CHANGELOG.md) -replace "`r`n", "`n"
+    if ($changelog -notmatch "(?m)^## \[$([regex]::Escape($Version))\] - \d{4}-\d{2}-\d{2}$") {
+        throw "CHANGELOG.md has no '## [$Version] - <date>' section."
+    }
+
+    $unreleased = [regex]::Match($changelog, '(?ms)^## \[Unreleased\][ \t]*$(.*?)(?=^## |\z)')
+    if (-not $unreleased.Success) {
+        throw "CHANGELOG.md has no '## [Unreleased]' heading."
+    }
+    if ($unreleased.Groups[1].Value -match '(?m)^- ') {
+        throw "CHANGELOG.md has entries under '## [Unreleased]'. Move them under '## [$Version]' first."
     }
 
     Invoke-Checked 'git fetch' { git fetch --quiet origin }
@@ -68,7 +76,13 @@ try {
         throw 'HEAD is not the pushed head of its branch. Push first.'
     }
 
-    # 1. The tag, local until the release is made.
+    # 1. The notes, built from the changelog at HEAD, which is the one the tag will
+    #    carry; then the tag, local until the release is made. The notes come first
+    #    so that a changelog in the wrong shape stops the release before it is tagged.
+    New-Item -ItemType Directory -Force -Path $logs | Out-Null
+    $notesFile = Join-Path $logs "notes-$Version.md"
+    Invoke-Checked 'New-ReleaseNotes.ps1' { pwsh -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'New-ReleaseNotes.ps1') -Version $Version -Destination $notesFile }
+
     if (-not (git tag --list $tag)) {
         Invoke-Checked 'git tag' { git tag -a $tag -m "RegisterAI $Version" }
     }
@@ -82,7 +96,6 @@ try {
     }
 
     # 3. The whole suite, a missing real client being a failure.
-    New-Item -ItemType Directory -Force -Path $logs | Out-Null
     $log = Join-Path $logs "test-$Version.log"
     $env:REGISTERAI_RELEASE_RUN = '1'
     try {
@@ -113,8 +126,6 @@ try {
 
     # 6. The tag and the release.
     Invoke-Checked 'git push tag' { git push --quiet origin $tag }
-    $notesFile = Join-Path $logs "notes-$Version.md"
-    [System.IO.File]::WriteAllText($notesFile, ($notes -replace "(?m)^## .*\r?\n", '').Trim() + "`n")
     $arguments = @('release', 'create', $tag, (Join-Path $release 'RegisterAI.exe'), $sums, '--title', "RegisterAI $Version", '--notes-file', $notesFile, '--verify-tag')
     if ($Draft) {
         $arguments += '--draft'
