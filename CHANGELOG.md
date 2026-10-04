@@ -28,6 +28,15 @@ lines in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-04
+
+RegisterAI registers a local MCP server with Claude Code and Codex by running each
+client's own command, and reads every change back before it reports it.
+
+The program works exactly as 0.2.0 did. The README is new and walks through every
+command with an example. From this version on, a release page lists one line per change,
+each linked to the full entry in the changelog.
+
 ### Added
 
 - 📦 **Each release page lists one line per change, linked to the full entry in the changelog.**
