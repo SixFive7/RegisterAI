@@ -16,23 +16,25 @@ user) and project scope (one folder).
   entry reads back as asked.
 - It changes only an entry that is the caller's own: one that names exactly the
   caller's command, or whose command resolves to a file under a folder the caller
-  names with `--owned-root`. Every other entry is reported as `foreign` and left alone.
+  names with `--owned-root`. Every other entry is reported as `foreign` and left alone,
+  unless `register` is given `--take-over`.
 - A configuration it cannot read is reported as `unreadable`, never as empty.
-- It never prompts, never reads stdin, and makes no network call.
+- It never prompts, never reads stdin, and makes no network call of its own.
 - It changes the user PATH only when asked to, with `path add` and `path remove`, and
   never as a side effect of another verb.
 
 ## Install
 
-Download `RegisterAI.exe` and `SHA256SUMS` from a release, and check the file before
-running it:
+Download `RegisterAI.exe` and `SHA256SUMS` from the
+[latest release](https://github.com/SixFive7/RegisterAI/releases/latest), and check the
+file before running it:
 
 ```powershell
 (Get-FileHash RegisterAI.exe -Algorithm SHA256).Hash.ToLowerInvariant() -eq (Get-Content SHA256SUMS).Split(' ')[0]
 ```
 
-There is nothing else to install. Put the file wherever the program that calls it
-expects it.
+It prints `True` when the file is the one the release lists. There is nothing else to
+install. Put the file wherever the program that calls it expects it.
 
 ## Quick start
 
@@ -42,10 +44,11 @@ registerai register --name demo --client all --scope user --owned-root 'C:\Apps\
 registerai unregister --name demo --client all --scope user --owned-root 'C:\Apps\Demo'
 ```
 
-Everything after `--` reaches the client unchanged, so your shell must not change it
-first. In PowerShell and bash, use single quotes. cmd.exe expands `%NAME%` even inside
-double quotes. Add `--dry-run` to see what arrived and what would happen, with nothing
-written.
+The examples assume the folder holding `RegisterAI.exe` is on PATH; otherwise give its
+full path. Everything after `--` reaches the client unchanged, so your shell must not
+change it first. In PowerShell and bash, use single quotes. cmd.exe expands `%NAME%`
+even inside double quotes. Add `--dry-run` to see what arrived and what would happen,
+with nothing written.
 
 `registerai help` prints the whole contract; `registerai describe` prints it as JSON,
 including the schema of every document.
@@ -58,6 +61,10 @@ including the schema of every document.
 | Claude Code | project | the same with `--scope project`, run in the folder | `<project>\.mcp.json` |
 | Codex | user | `codex mcp add <name>` | `codex mcp list --json` |
 | Codex | project | the same with `CODEX_HOME` set to `<project>\.codex` | `codex mcp list --json`, same variable |
+
+Claude Code keeps its user entries in `.config.json` instead when that file exists in its
+configuration folder (`%CLAUDE_CONFIG_DIR%`, else `%USERPROFILE%\.claude`), and
+RegisterAI reads them there.
 
 Claude Code expands `${NAME}` and `${NAME:-default}` in a command; Codex expands
 nothing. A bare file name is looked up on the PATH a newly started program gets, and
@@ -107,7 +114,7 @@ usage error write exactly one JSON document to stdout, UTF-8 with LF line ends, 
 | 4 | Refused: a client's configuration could not be read. |
 | 5 | The client was not found. With `--client all`, only when none was found. |
 
-With several clients the code is the first that applies of 1, 4, 3, 5, 0.
+With several clients, the exit code is the first of 1, 4, 3, 5 and 0 that applies.
 
 ## Use from an installer or an agent
 
@@ -127,18 +134,25 @@ pwsh build/Publish.ps1   # writes artifacts\publish\RegisterAI.exe
 dotnet test              # the contract tests run the published executable
 ```
 
-The tests drive the executable against a fake client and never touch a real client
-configuration. They never write your user PATH either: the path verbs are tested against
-a PATH kept in memory or under a scratch registry key, the executable only with
-`--dry-run`, and the run fails if your PATH reads differently after it than before. To
-refuse commits that carry details of your machine, turn on the hook once per clone with
-`git config core.hooksPath build/hooks`.
+The tests drive the executable against a fake client. Where Claude Code and Codex are
+installed, `RealClientTests` also runs copies of them with their configuration folders
+and profile pointed into scratch, and skips when either is missing. No test touches a
+real client configuration. They never write your user PATH either: the path verbs are
+tested against a PATH kept in memory or under a scratch registry key, the executable
+only with `--dry-run`, and the run fails if your PATH reads differently after it than
+before. To refuse commits that carry details of your machine, turn on the hook once per
+clone with `git config core.hooksPath build/hooks`.
 
 ## Compatibility
 
 The JSON documents carry a schema number. A change that renames or removes a key or a
 published word comes with a new schema number. New keys and words can arrive within a
 schema number, so read the documents tolerantly.
+
+## Security
+
+Report a vulnerability privately, as [SECURITY.md](SECURITY.md) describes, and not in a
+public issue.
 
 ## License
 
